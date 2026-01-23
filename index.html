@@ -1,0 +1,319 @@
+<!DOCTYPE html>
+<html lang="it">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
+    
+    <title>Calcolo Volumi da FiO2 - Mixer Medicale</title>
+    <meta name="description" content="Applicazione medicale per il calcolo dei flussi Aria/Ossigeno. Determina i litri/min necessari per ottenere la FiO2 desiderata.">
+    <meta name="keywords" content="Calcolo FiO2, Mixer O2, Ossigenoterapia, Medical Calculator, Venturi, Alto Flusso, Miscelatore Aria O2">
+    
+    <meta name="author" content="Ivan D.">
+    <meta name="copyright" content="Ivan D. 2026">
+
+    <link rel="manifest" href="./manifest.json">
+    <meta name="theme-color" content="#007bff">
+
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-title" content="Volumi O2">
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+    <link rel="apple-touch-icon" href="icona.png">
+    <link rel="icon" type="image/png" href="icona.png">
+
+    <style>
+        /* --- STILE BASE (SMARTPHONE) --- */
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background-color: #f0f4f8;
+            min-height: 100vh;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            margin: 0;
+            user-select: none;
+            -webkit-user-select: none; 
+            touch-action: manipulation; 
+        }
+
+        .container {
+            background-color: white;
+            padding: 25px;
+            border-radius: 25px;
+            box-shadow: 0 10px 30px rgba(0,0,0,0.15);
+            width: 340px; 
+            text-align: center;
+            border-top: 8px solid #007bff; 
+        }
+
+        h2 { margin: 0 0 25px 0; color: #333; font-size: 24px; }
+        
+        .label-title { font-weight: bold; color: #555; margin-bottom: 10px; display: block; font-size: 16px;}
+        
+        .stepper {
+            display: flex; justify-content: space-between; align-items: center;
+            background-color: #f8f9fa; border-radius: 15px; padding: 8px;
+            border: 1px solid #e9ecef; margin-bottom: 12px;
+        }
+        
+        .btn-step {
+            background-color: #007bff; color: white; border: none;
+            width: 55px; height: 55px; border-radius: 12px;
+            font-size: 28px; font-weight: bold; cursor: pointer;
+            display: flex; align-items: center; justify-content: center;
+            transition: background 0.2s, transform 0.1s;
+            -webkit-tap-highlight-color: transparent; 
+        }
+        .btn-step:active { transform: scale(0.95); background-color: #0056b3; }
+        .hidden-btn { visibility: hidden; pointer-events: none; }
+
+        .value-display {
+            font-size: 32px; font-weight: bold; color: #333;
+            width: 90px; text-align: center; border: none; background: transparent;
+        }
+
+        .slider-wrapper { padding: 0 5px; margin-bottom: 25px; }
+        input[type=range] { width: 100%; cursor: pointer; accent-color: #007bff; height: 6px; display: block;}
+
+        hr { border: 0; border-top: 1px solid #eee; margin: 20px 0; }
+
+        .results-container { display: flex; justify-content: space-between; gap: 10px; }
+        
+        .result-box {
+            background-color: #e3f2fd; border-radius: 15px; padding: 15px 5px;
+            width: 48%; box-sizing: border-box; box-shadow: 0 4px 10px rgba(0,0,0,0.05);
+            display: flex; flex-direction: column; justify-content: center;
+            transition: background-color 0.3s;
+        }
+        .result-box.air { background-color: #fff3cd; } 
+        
+        /* Stili per allarmi (Sicurezza) */
+        .result-box.danger { background-color: #fadbd8; border: 2px solid #e74c3c; }
+        .res-number.danger-text { color: #c0392b !important; }
+        .warning-msg { font-size: 12px; color: #c0392b; font-weight: bold; margin-top: 5px; display: none; }
+        
+        .res-label { font-size: 14px; color: #555; margin-bottom: 5px; font-weight: bold; text-transform: uppercase;}
+        .res-number { font-size: 38px; font-weight: bold; color: #007bff; line-height: 1.1;}
+        .air .res-number { color: #d39e00; }
+        .unit { font-size: 14px; color: #888; margin-top: 5px;}
+
+        .footer-signature {
+            margin-top: 25px; font-size: 12px; color: #aaa;
+            font-weight: 500; letter-spacing: 0.5px;
+        }
+
+        /* --- STILE PER PC / TABLET / WINDOWS APP (>600px) --- */
+        @media (min-width: 600px) {
+            :root { 
+                /* Scala 14px: Ottima leggibilità su tutti i monitor */
+                --scala-pc: 14px; 
+            } 
+
+            body {
+                background: linear-gradient(135deg, #f0f4f8 0%, #c3dafe 100%);
+                padding: 10px; box-sizing: border-box;
+            }
+            
+            .container {
+                font-size: var(--scala-pc); 
+                width: 98%; max-width: 75em;    
+                padding: 2.5em;       
+                box-shadow: 0 2em 6em rgba(0,0,0,0.15); border: 1px solid #fff;
+
+                display: grid;
+                grid-template-columns: 1fr 1fr; 
+                grid-template-areas: "titolo titolo" "ctrl1 risultati" "ctrl2 risultati" "firma firma";
+                gap: 0 2em; align-items: center; 
+            }
+
+            h2 { grid-area: titolo; font-size: 2.2em; margin-bottom: 1em; }
+            .control-group:nth-of-type(1) { grid-area: ctrl1; }
+            .control-group:nth-of-type(2) { grid-area: ctrl2; }
+            hr { display: none; } 
+
+            .results-container {
+                grid-area: risultati; flex-direction: column; 
+                height: 100%; justify-content: center; gap: 1.5em;
+            }
+            .result-box { width: 100%; padding: 1.5em; }
+            .footer-signature { grid-area: firma; margin-top: 2em; font-size: 1.2em; }
+
+            .btn-step { width: 3.5em; height: 3.5em; font-size: 2em; border-radius: 0.6em; }
+            .value-display { font-size: 2.5em; width: 2.5em; }
+            .label-title { font-size: 1.4em; margin-bottom: 0.2em; }
+            .stepper { padding: 0.5em; border-radius: 0.8em; margin-bottom: 1em; }
+            .slider-wrapper { margin-bottom: 1em; }
+            input[type=range] { height: 0.6em; }
+            .res-label { font-size: 1.4em; }
+            .res-number { font-size: 5em; } 
+            .unit { font-size: 1.1em; }
+            
+            .warning-msg { font-size: 1.2em; }
+        }
+    </style>
+</head>
+<body>
+
+<div class="container">
+    <h2>Calcolo Volumi da FiO2</h2>
+    
+    <div class="control-group">
+        <span class="label-title">FiO2 Desiderata (%)</span>
+        
+        <div class="stepper">
+            <button class="btn-step" id="btn-minus-fio2" onclick="cambiaDaBottone('fio2', -1)">−</button>
+            <input type="text" id="val-fio2" class="value-display" value="21" readonly>
+            <button class="btn-step" id="btn-plus-fio2" onclick="cambiaDaBottone('fio2', 1)">+</button>
+        </div>
+        
+        <div class="slider-wrapper">
+            <input type="range" id="slider-fio2" min="21" max="100" value="21" oninput="cambiaDaSlider('fio2', this.value)">
+        </div>
+    </div>
+
+    <div class="control-group">
+        <span class="label-title">Flusso Totale (Lt/min)</span>
+        
+        <div class="stepper">
+            <button class="btn-step" id="btn-minus-flow" onclick="cambiaDaBottone('flusso', -1)">−</button>
+            <input type="text" id="val-flusso" class="value-display" value="10" readonly>
+            <button class="btn-step" id="btn-plus-flow" onclick="cambiaDaBottone('flusso', 1)">+</button>
+        </div>
+
+        <div class="slider-wrapper">
+            <input type="range" id="slider-flusso" min="1" max="60" value="10" oninput="cambiaDaSlider('flusso', this.value)">
+        </div>
+    </div>
+
+    <hr>
+
+    <div class="results-container">
+        <div class="result-box" id="box-o2">
+            <div class="res-label">OSSIGENO</div>
+            <div class="res-number" id="res-o2">0</div>
+            <div class="unit">Lt/min</div>
+            <div class="warning-msg" id="warn-o2">⚠️ MAX 30!</div>
+        </div>
+
+        <div class="result-box air" id="box-aria">
+            <div class="res-label">ARIA</div>
+            <div class="res-number" id="res-aria">0</div>
+            <div class="unit">Lt/min</div>
+            <div class="warning-msg" id="warn-aria">⚠️ MAX 40!</div>
+        </div>
+    </div>
+
+    <div class="footer-signature">Ivan D. - v1.2</div>
+
+</div>
+
+<script>
+    console.log("%c Calcolo Volumi O2 - Ideato da Ivan D.", "color: #007bff; font-size: 16px; font-weight: bold; background: #e3f2fd; padding: 5px; border-radius: 5px;");
+
+    let stato = {
+        fio2: 21,  
+        flusso: 10
+    };
+
+    const LIMITI = {
+        fio2_min: 21,
+        fio2_max: 100,
+        flow_min: 1,
+        flow_max: 60,
+        // Limiti FISICI (Attivano allarme ma non bloccano il calcolo)
+        wall_o2_max: 30,
+        wall_air_max: 40
+    };
+
+    function cambiaDaBottone(parametro, delta) {
+        if (parametro === 'fio2') {
+            stato.fio2 += delta;
+            if (stato.fio2 < LIMITI.fio2_min) stato.fio2 = LIMITI.fio2_min;
+            if (stato.fio2 > LIMITI.fio2_max) stato.fio2 = LIMITI.fio2_max;
+            document.getElementById('slider-fio2').value = stato.fio2;
+        } 
+        else if (parametro === 'flusso') {
+            stato.flusso += delta;
+            if (stato.flusso < LIMITI.flow_min) stato.flusso = LIMITI.flow_min;
+            if (stato.flusso > LIMITI.flow_max) stato.flusso = LIMITI.flow_max;
+            document.getElementById('slider-flusso').value = stato.flusso;
+        }
+        aggiornaTutto();
+    }
+
+    function cambiaDaSlider(parametro, valore) {
+        valore = parseInt(valore); 
+        if (parametro === 'fio2') {
+            stato.fio2 = valore;
+        } else if (parametro === 'flusso') {
+            stato.flusso = valore;
+        }
+        aggiornaTutto();
+    }
+
+    function aggiornaTutto() {
+        document.getElementById('val-fio2').value = stato.fio2;
+        document.getElementById('val-flusso').value = stato.flusso;
+        aggiornaVisibilitaBottoni();
+        calcolaRisultati();
+    }
+
+    function aggiornaVisibilitaBottoni() {
+        const btnMenoFiO2 = document.getElementById('btn-minus-fio2');
+        const btnPiuFiO2 = document.getElementById('btn-plus-fio2');
+        btnMenoFiO2.className = (stato.fio2 <= LIMITI.fio2_min) ? 'btn-step hidden-btn' : 'btn-step';
+        btnPiuFiO2.className = (stato.fio2 >= LIMITI.fio2_max) ? 'btn-step hidden-btn' : 'btn-step';
+
+        const btnMenoFlow = document.getElementById('btn-minus-flow');
+        const btnPiuFlow = document.getElementById('btn-plus-flow');
+        btnMenoFlow.className = (stato.flusso <= LIMITI.flow_min) ? 'btn-step hidden-btn' : 'btn-step';
+        btnPiuFlow.className = (stato.flusso >= LIMITI.flow_max) ? 'btn-step hidden-btn' : 'btn-step';
+    }
+
+    function calcolaRisultati() {
+        let fio2 = stato.fio2;
+        let tot = stato.flusso;
+        
+        let calcoloO2 = (tot * (fio2 - 21)) / 79;
+        let litriO2 = Math.round(calcoloO2);
+        
+        if (fio2 === 21) litriO2 = 0;
+
+        let litriAria = tot - litriO2;
+        if (litriAria < 0) litriAria = 0; 
+
+        // Visualizzazione numeri
+        const elO2 = document.getElementById('res-o2');
+        const elAir = document.getElementById('res-aria');
+        elO2.innerText = litriO2;
+        elAir.innerText = litriAria;
+
+        // CONTROLLO LIMITI FISICI (ALLARMI)
+        checkAllarme('box-o2', 'res-o2', 'warn-o2', litriO2, LIMITI.wall_o2_max);
+        checkAllarme('box-aria', 'res-aria', 'warn-aria', litriAria, LIMITI.wall_air_max);
+    }
+
+    function checkAllarme(boxId, textId, warnId, valore, limite) {
+        const box = document.getElementById(boxId);
+        const text = document.getElementById(textId);
+        const warn = document.getElementById(warnId);
+
+        if (valore > limite) {
+            // Attiva allarme
+            box.classList.add('danger');
+            text.classList.add('danger-text');
+            warn.style.display = 'block';
+            if(boxId === 'box-aria') box.classList.remove('air');
+        } else {
+            // Spegni allarme
+            box.classList.remove('danger');
+            text.classList.remove('danger-text');
+            warn.style.display = 'none';
+            if(boxId === 'box-aria') box.classList.add('air');
+        }
+    }
+
+    aggiornaTutto();
+</script>
+
+</body>
+</html>

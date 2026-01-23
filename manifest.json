@@ -1,0 +1,15 @@
+{
+  "name": "Calcolo Volumi da FiO2",
+  "short_name": "Volumi da FiO2",
+  "start_url": "index.html",
+  "display": "standalone",
+  "background_color": "#ffffff",
+  "theme_color": "#007bff",
+  "icons": [
+    {
+      "src": "icona.png",
+      "sizes": "512x512",
+      "type": "image/png"
+    }
+  ]
+}
